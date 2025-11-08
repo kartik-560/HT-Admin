@@ -9,6 +9,8 @@ import { Input, Select, Textarea } from '@/components/forms/input';
 import { useToast } from '@/components/ui/toast';
 import api from '@/lib/axios';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -18,10 +20,13 @@ export default function ProductsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [imageFiles, setImageFiles] = useState([]);
+  const [existingImages, setExistingImages] = useState([]); // New state for existing images
+  const [imagesToRemove, setImagesToRemove] = useState([]); // Track images to remove
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [activeTab, setActiveTab] = useState('all');
   const { toast } = useToast();
   const router = useRouter();
+
   const {
     register,
     handleSubmit,
@@ -55,6 +60,8 @@ export default function ProductsPage() {
     setEditingProduct(null);
     setSelectedCategories([]);
     setImageFiles([]);
+    setExistingImages([]);
+    setImagesToRemove([]);
     setExpandedCategories(new Set());
     reset({
       name: '',
@@ -79,11 +86,12 @@ export default function ProductsPage() {
     setModalOpen(true);
   };
 
-
   const handleEdit = (product) => {
     setEditingProduct(product);
     setSelectedCategories(product.categoryIds || []);
     setImageFiles([]);
+    setExistingImages(product.imageUrls || []); // Load existing images
+    setImagesToRemove([]);
     reset({
       name: product.name,
       brand: product.brand,
@@ -164,82 +172,190 @@ export default function ProductsPage() {
     setImageFiles([...e.target.files]);
   };
 
-  const removeImage = (index) => {
+  const removeNewImage = (index) => {
     setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleFormSubmit = async (data) => {
-    if (selectedCategories.length === 0) {
-      toast.error('Please select at least one category');
-      return;
-    }
-
-    if (!editingProduct && imageFiles.length === 0) {
-      toast.error('Please upload at least one image');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-
-      formData.append('name', data.name);
-      formData.append('brand', data.brand || '');
-      formData.append('originalPrice', parseFloat(data.originalPrice) || 0);
-      formData.append('discountedPrice', parseFloat(data.discountedPrice) || 0);
-      formData.append('discountPercentage', parseFloat(data.discountPercentage) || 0);
-      formData.append('stockStatus', data.stockStatus);
-      formData.append('note', data.note || '');
-      formData.append('material', data.material || '');
-      formData.append('color', data.color || '');
-      formData.append('seaterCount', data.seaterCount ? parseInt(data.seaterCount) : null);
-      formData.append('warrantyPeriod', data.warrantyPeriod || '');
-      formData.append('delivery', data.delivery || '');
-      formData.append('installation', data.installation || '');
-      formData.append('productCareInstructions', data.productCareInstructions || '');
-      formData.append('returnAndCancellationPolicy', data.returnAndCancellationPolicy || '');
-      formData.append('priceIncludesTax', data.priceIncludesTax || false);
-      formData.append('shippingIncluded', data.shippingIncluded || false);
-      formData.append('status', data.status || 'active');
-
-      selectedCategories.forEach((categoryId) => {
-        formData.append('categoryIds', categoryId);
-      });
-
-      imageFiles.forEach((file) => {
-        formData.append('images', file);
-      });
-
-      if (editingProduct) {
-        await api.put(`/products/${editingProduct.id}`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        toast.success('Product updated successfully');
-      } else {
-        await api.post('/products', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        toast.success('Product created successfully');
-      }
-
-      setModalOpen(false);
-      fetchData();
-    } catch (error) {
-      console.error('Error submitting form:', error);
-
-      if (error.response?.data?.error) {
-        toast.error(`Error: ${error.response.data.error}`);
-      } else {
-        toast.error(`Failed to ${editingProduct ? 'update' : 'create'} product`);
-      }
-    } finally {
-      setSubmitting(false);
-    }
+  // Remove existing image (mark for deletion)
+  const removeExistingImage = (imageUrl) => {
+    setExistingImages(prev => prev.filter(url => url !== imageUrl));
+    setImagesToRemove(prev => [...prev, imageUrl]);
   };
+
+  // const handleFormSubmit = async (data) => {
+  //   if (selectedCategories.length === 0) {
+  //     toast.error('Please select at least one category');
+  //     return;
+  //   }
+
+  //   // Check if at least one image exists (new or existing)
+  //   if (!editingProduct && imageFiles.length === 0) {
+  //     toast.error('Please upload at least one image');
+  //     return;
+  //   }
+
+  //   if (editingProduct && existingImages.length === 0 && imageFiles.length === 0) {
+  //     toast.error('Product must have at least one image');
+  //     return;
+  //   }
+
+  //   setSubmitting(true);
+  //   try {
+  //     const formData = new FormData();
+
+  //     formData.append('name', data.name);
+  //     formData.append('brand', data.brand || '');
+  //     formData.append('originalPrice', parseFloat(data.originalPrice) || 0);
+  //     formData.append('discountedPrice', parseFloat(data.discountedPrice) || 0);
+  //     formData.append('discountPercentage', parseFloat(data.discountPercentage) || 0);
+  //     formData.append('stockStatus', data.stockStatus);
+  //     formData.append('note', data.note || '');
+  //     formData.append('material', data.material || '');
+  //     formData.append('color', data.color || '');
+  //     formData.append('seaterCount', data.seaterCount ? parseInt(data.seaterCount) : null);
+  //     formData.append('warrantyPeriod', data.warrantyPeriod || '');
+  //     formData.append('delivery', data.delivery || '');
+  //     formData.append('installation', data.installation || '');
+  //     formData.append('productCareInstructions', data.productCareInstructions || '');
+  //     formData.append('returnAndCancellationPolicy', data.returnAndCancellationPolicy || '');
+  //     formData.append('priceIncludesTax', data.priceIncludesTax || false);
+  //     formData.append('shippingIncluded', data.shippingIncluded || false);
+  //     formData.append('status', data.status || 'active');
+
+  //     selectedCategories.forEach((categoryId) => {
+  //       formData.append('categoryIds', categoryId);
+  //     });
+
+  //     // Add existing images that weren't removed
+  //     if (editingProduct) {
+  //       existingImages.forEach((imageUrl) => {
+  //         formData.append('existingImages', imageUrl);
+  //       });
+  //     }
+
+  //     // Add new image files
+  //     imageFiles.forEach((file) => {
+  //       formData.append('images', file);
+  //     });
+
+  //     if (editingProduct) {
+  //       await api.put(`/products/${editingProduct.id}`, formData, {
+  //         headers: {
+  //           'Content-Type': 'multipart/form-data',
+  //         },
+  //       });
+  //       toast.success('Product updated successfully');
+  //     } else {
+  //       await api.post('/products', formData, {
+  //         headers: {
+  //           'Content-Type': 'multipart/form-data',
+  //         },
+  //       });
+  //       toast.success('Product created successfully');
+  //     }
+
+  //     setModalOpen(false);
+  //     fetchData();
+  //   } catch (error) {
+  //     console.error('Error submitting form:', error);
+
+  //     if (error.response?.data?.error) {
+  //       toast.error(`Error: ${error.response.data.error}`);
+  //     } else {
+  //       toast.error(`Failed to ${editingProduct ? 'update' : 'create'} product`);
+  //     }
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // };
+
+const handleFormSubmit = async (data) => {
+  if (selectedCategories.length === 0) {
+    toast.error('Please select at least one category');
+    return;
+  }
+
+  // Check if at least one image exists (new or existing)
+  if (!editingProduct && imageFiles.length === 0) {
+    toast.error('Please upload at least one image');
+    return;
+  }
+
+  if (editingProduct && existingImages.length === 0 && imageFiles.length === 0) {
+    toast.error('Product must have at least one image');
+    return;
+  }
+
+  setSubmitting(true);
+  try {
+    const formData = new FormData();
+
+    formData.append('name', data.name);
+    formData.append('brand', data.brand || '');
+    formData.append('originalPrice', parseFloat(data.originalPrice) || 0);
+    formData.append('discountedPrice', parseFloat(data.discountedPrice) || 0);
+    formData.append('discountPercentage', parseFloat(data.discountPercentage) || 0);
+    formData.append('stockStatus', data.stockStatus);
+    formData.append('note', data.note || '');
+    formData.append('material', data.material || '');
+    formData.append('color', data.color || '');
+    formData.append('seaterCount', data.seaterCount || '');
+    formData.append('warrantyPeriod', data.warrantyPeriod || '');
+    formData.append('delivery', data.delivery || '');
+    formData.append('installation', data.installation || '');
+    formData.append('productCareInstructions', data.productCareInstructions || '');
+    formData.append('returnAndCancellationPolicy', data.returnAndCancellationPolicy || '');
+    formData.append('priceIncludesTax', data.priceIncludesTax || false);
+    formData.append('shippingIncluded', data.shippingIncluded || false);
+    formData.append('status', data.status || 'active');
+
+    // Add categories
+    selectedCategories.forEach((categoryId) => {
+      formData.append('categoryIds', categoryId);
+    });
+
+    // When editing: Send existing images as JSON string
+    if (editingProduct) {
+      formData.append('existingImageUrls', JSON.stringify(existingImages));
+    }
+
+    // Add new image files
+    imageFiles.forEach((file) => {
+      formData.append('images', file);
+    });
+
+    if (editingProduct) {
+      await api.put(`/products/${editingProduct.id}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      toast.success('Product updated successfully');
+    } else {
+      await api.post('/products', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      toast.success('Product created successfully');
+    }
+
+    setModalOpen(false);
+    setImageFiles([]);
+    setExistingImages([]);
+    fetchData();
+  } catch (error) {
+    console.error('Error submitting form:', error);
+
+    if (error.response?.data?.error) {
+      toast.error(`Error: ${error.response.data.error}`);
+    } else {
+      toast.error(`Failed to ${editingProduct ? 'update' : 'create'} product`);
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const getCategoryInfo = (categoryIds) => {
     const parentCategories = [];
@@ -370,8 +486,6 @@ export default function ProductsPage() {
       }
     }
   ];
-
-
 
   const stockOptions = [
     { value: 'In Stock', label: 'In Stock' },
@@ -692,32 +806,70 @@ export default function ProductsPage() {
                 Product Images {!editingProduct && '*'}
               </label>
 
-              {imageFiles.length > 0 && (
-                <div className="mb-3 grid grid-cols-3 gap-2">
-                  {Array.from(imageFiles).map((file, index) => (
-                    <div
-                      key={index}
-                      className="relative group border border-gray-200 rounded p-2"
-                    >
-                      <p className="text-xs text-gray-600 truncate">{file.name}</p>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              {/* Existing Images Preview */}
+              {editingProduct && existingImages.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs text-gray-600 mb-2 font-medium">Existing Images:</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {existingImages.map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        className="relative group border-2 border-gray-300 rounded-lg overflow-hidden aspect-square"
                       >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
+                        <Image
+                          src={imageUrl}
+                          alt={`Product ${index + 1}`}
+                          fill
+                          className="object-cover"
+                          unoptimized={imageUrl.startsWith('http')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingImage(imageUrl)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                          title="Remove image"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
+              {/* New Images Preview */}
+              {imageFiles.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs text-gray-600 mb-2 font-medium">New Images:</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {Array.from(imageFiles).map((file, index) => (
+                      <div
+                        key={index}
+                        className="relative group border-2 border-blue-300 rounded-lg p-2 bg-blue-50"
+                      >
+                        <p className="text-xs text-gray-700 truncate mb-1">{file.name}</p>
+                        <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                        <button
+                          type="button"
+                          onClick={() => removeNewImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          title="Remove image"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Button */}
               <label className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer block">
                 <div className="flex justify-center mb-3">
                   <ImageIcon className="h-10 w-10 text-gray-400" />
                 </div>
                 <p className="text-sm font-medium text-gray-700 mb-1">
-                  Upload product images
+                  {editingProduct ? 'Add more images' : 'Upload product images'}
                 </p>
                 <p className="text-xs text-gray-600 mb-2">
                   PNG, JPG up to 5 images
