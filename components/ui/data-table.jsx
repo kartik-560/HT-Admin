@@ -9,7 +9,8 @@ export const DataTable = ({
   onEdit, 
   onDelete, 
   onView,
-  loading = false 
+  loading = false ,
+  showActions = true
 }) => {
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState('asc');
@@ -67,9 +68,11 @@ export const DataTable = ({
                   </div>
                 </th>
               ))}
+               {showActions && (
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
+               )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -80,6 +83,7 @@ export const DataTable = ({
                     {column.render ? column.render(item[column.key], item) : item[column.key]}
                   </td>
                 ))}
+                {showActions && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center gap-2">
                     {onView && (
@@ -108,6 +112,7 @@ export const DataTable = ({
                     )}
                   </div>
                 </td>
+                )}
               </tr>
             ))}
           </tbody>

@@ -20,6 +20,7 @@ export default function UsersPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
 
+  const [currentUserRoleId, setCurrentUserRoleId] = useState(null);
   const {
     register: registerForm,
     handleSubmit: handleFormSubmit,
@@ -41,6 +42,7 @@ export default function UsersPage() {
     try {
       const response = await api.get('/users/profile/me');
       setCurrentUserId(response.data.id);
+      setCurrentUserRoleId(response.data.roleId);
     } catch (error) {
       console.error('Error fetching current user:', error);
     }
@@ -135,6 +137,14 @@ export default function UsersPage() {
   };
 
   const isEditingSelf = editingUser && editingUser.id === currentUserId;
+  const isAdmin = currentUserRoleId === 1;
+
+  const canEditUser = (user) =>
+    isAdmin || user.id === currentUserId;
+
+  const canDeleteUser = (user) =>
+    isAdmin && user.id !== currentUserId;
+
 
   const columns = [
     {
@@ -183,7 +193,54 @@ export default function UsersPage() {
           </span>
         </div>
       )
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_, user) => {
+        const canEdit = canEditUser(user);
+        const canDelete = canDeleteUser(user);
+
+        return (
+          <div className="flex gap-2">
+            <button
+              onClick={canEdit ? () => handleEdit(user) : undefined}
+              disabled={!canEdit}
+              className={`px-3 py-1.5 rounded-md text-sm font-semibold flex items-center gap-1
+            ${canEdit
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
+              title={canEdit ? 'Edit user' : 'You can only edit your own profile'}
+            >
+              <Edit2 size={14} />
+              Edit
+            </button>
+
+            <button
+              onClick={canDelete ? () => handleDelete(user) : undefined}
+              disabled={!canDelete}
+              className={`px-3 py-1.5 rounded-md text-sm font-semibold flex items-center gap-1
+            ${canDelete
+                  ? 'bg-red-600 text-white hover:bg-red-700 cursor-pointer'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
+              title={
+                canDelete
+                  ? 'Delete user'
+                  : user.id === currentUserId
+                    ? 'You cannot delete your own account'
+                    : 'Only admin can delete users'
+              }
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          </div>
+        );
+      }
     }
+
   ];
 
   if (loading) {
@@ -223,13 +280,15 @@ export default function UsersPage() {
             </div>
 
             {/* Add User Button */}
-            <button
-              onClick={handleCreate}
-              className="group relative px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2.5"
-            >
-              <Plus size={22} className="group-hover:rotate-90 transition-transform duration-300" />
-              <span>Add User</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={handleCreate}
+                className="group relative px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2.5"
+              >
+                <Plus size={22} className="group-hover:rotate-90 transition-transform duration-300" />
+                <span>Add User</span>
+              </button>
+            )}
           </div>
 
           {/* Stats Cards */}
@@ -289,13 +348,15 @@ export default function UsersPage() {
             </div>
             <h3 className="text-xl font-semibold text-slate-900 mb-2">No users yet</h3>
             <p className="text-slate-600 mb-6">Start by adding your first user to the system</p>
-            <button
-              onClick={handleCreate}
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 inline-flex items-center gap-2"
-            >
-              <Plus size={20} />
-              Add User
-            </button>
+            {isAdmin && (
+              <button
+                onClick={handleCreate}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 inline-flex items-center gap-2"
+              >
+                <Plus size={20} />
+                Add User
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -305,9 +366,8 @@ export default function UsersPage() {
                 <DataTable
                   columns={columns}
                   data={users}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
                   loading={loading}
+                  showActions={false}
                 />
               </div>
             </div>
@@ -316,18 +376,17 @@ export default function UsersPage() {
             <div className="md:hidden space-y-4">
               {users.map((user) => {
                 const isCurrentUser = user.id === currentUserId;
-                
+
                 return (
-                  <div 
+                  <div
                     key={user.id}
                     className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden"
                   >
                     {/* Card Header */}
-                    <div className={`p-4 border-b border-slate-200 ${
-                      isCurrentUser 
-                        ? 'bg-gradient-to-r from-green-100 via-emerald-100 to-green-100' 
-                        : 'bg-gradient-to-r from-indigo-100 via-blue-100 to-indigo-100'
-                    }`}>
+                    <div className={`p-4 border-b border-slate-200 ${isCurrentUser
+                      ? 'bg-gradient-to-r from-green-100 via-emerald-100 to-green-100'
+                      : 'bg-gradient-to-r from-indigo-100 via-blue-100 to-indigo-100'
+                      }`}>
                       <div className="flex items-start gap-3">
                         <div className="relative">
                           <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
@@ -392,13 +451,16 @@ export default function UsersPage() {
                           <Edit2 size={16} />
                           <span>Edit</span>
                         </button>
-                        <button
-                          onClick={() => handleDelete(user)}
-                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
-                        >
-                          <Trash2 size={16} />
-                          <span>Delete</span>
-                        </button>
+
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDelete(user)}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                            <span>Delete</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
