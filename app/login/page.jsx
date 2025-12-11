@@ -92,6 +92,7 @@ export default function LoginPage() {
               <input
                 type="tel"
                 value={phone}
+                maxLength={10}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter your phone number"
                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-slate-900 placeholder:text-slate-400"

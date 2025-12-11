@@ -21,6 +21,8 @@ export default function AddProductPage() {
     const {
         register,
         handleSubmit,
+        watch,
+        setValue,
         formState: { errors }
     } = useForm({
         defaultValues: {
@@ -44,6 +46,25 @@ export default function AddProductPage() {
             shippingIncluded: false,
         }
     });
+
+
+    const watchOriginalPrice = watch('originalPrice');
+    const watchDiscountPercentage = watch('discountPercentage');
+
+    // Auto-calculate discounted price when original price or discount percentage changes
+    useEffect(() => {
+        const originalPrice = parseFloat(watchOriginalPrice) || 0;
+        const discountPercentage = parseFloat(watchDiscountPercentage) || 0;
+
+        if (originalPrice > 0 && discountPercentage > 0 && discountPercentage <= 100) {
+            const discountAmount = (originalPrice * discountPercentage) / 100;
+            const discountedPrice = originalPrice - discountAmount;
+            setValue('discountedPrice', discountedPrice.toFixed(2));
+        } else if (discountPercentage === 0) {
+            // If no discount, set discounted price equal to original price
+            setValue('discountedPrice', originalPrice > 0 ? originalPrice.toFixed(2) : '');
+        }
+    }, [watchOriginalPrice, watchDiscountPercentage, setValue]);
 
     // Fetch categories on mount
     useEffect(() => {
@@ -81,7 +102,7 @@ export default function AddProductPage() {
 
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
-        
+
         if (files.length > 5) {
             toast.error('You can only upload maximum 5 images');
             setImageFiles(files.slice(0, 5));
@@ -182,9 +203,8 @@ export default function AddProductPage() {
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
                     />
 
-                    <span className={`text-sm flex-1 ${
-                        level === 0 ? 'text-gray-900 font-semibold' : 'text-blue-600 font-medium'
-                    }`}>
+                    <span className={`text-sm flex-1 ${level === 0 ? 'text-gray-900 font-semibold' : 'text-blue-600 font-medium'
+                        }`}>
                         {level > 0 && <span className="text-gray-400 mr-2">{'└─'}</span>}
                         {category.name}
                     </span>
@@ -224,7 +244,7 @@ export default function AddProductPage() {
                         <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                         <span className="font-medium">Back to Products</span>
                     </button>
-                    
+
                     <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 shadow-lg text-white">
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -238,7 +258,7 @@ export default function AddProductPage() {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-                    
+
                     {/* Basic Information */}
                     <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-100">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
@@ -247,7 +267,7 @@ export default function AddProductPage() {
                             </div>
                             <h2 className="text-xl font-bold text-gray-900">Basic Information</h2>
                         </div>
-                        
+
                         <div className="space-y-5">
                             <Input
                                 label="Product Name *"
@@ -283,7 +303,7 @@ export default function AddProductPage() {
                             </div>
                             <h2 className="text-xl font-bold text-gray-900">Pricing & Stock</h2>
                         </div>
-                        
+
                         <div className="space-y-5">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <Input
@@ -296,15 +316,6 @@ export default function AddProductPage() {
                                 />
 
                                 <Input
-                                    label="Discounted Price"
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    {...register('discountedPrice')}
-                                    error={errors.discountedPrice?.message}
-                                />
-
-                                <Input
                                     label="Discount %"
                                     type="number"
                                     min="0"
@@ -313,6 +324,26 @@ export default function AddProductPage() {
                                     {...register('discountPercentage')}
                                     error={errors.discountPercentage?.message}
                                 />
+
+                                <div className="relative">
+                                    <Input
+                                        label="Discounted Price"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        {...register('discountedPrice')}
+                                        error={errors.discountedPrice?.message}
+                                        readOnly
+                                        className="bg-gray-50"
+                                    />
+                                    <div className="absolute top-0 right-0 mt-1">
+                                        <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
+                                            Auto-calculated
+                                        </span>
+                                    </div>
+                                </div>
+
+
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -361,7 +392,7 @@ export default function AddProductPage() {
                             </div>
                             <h2 className="text-xl font-bold text-gray-900">Product Specifications</h2>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <Input
                                 label="Material"
@@ -405,7 +436,7 @@ export default function AddProductPage() {
                             </div>
                             <h2 className="text-xl font-bold text-gray-900">Delivery & Services</h2>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <Input
                                 label="Delivery Info"
@@ -433,7 +464,7 @@ export default function AddProductPage() {
                             </div>
                             <h2 className="text-xl font-bold text-gray-900">Care & Policies</h2>
                         </div>
-                        
+
                         <div className="space-y-5">
                             <Textarea
                                 label="Care Instructions"
@@ -461,7 +492,7 @@ export default function AddProductPage() {
                             </div>
                             <h2 className="text-xl font-bold text-gray-900">Categories & Subcategories *</h2>
                         </div>
-                        
+
                         <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-4 border border-gray-200">
                             <div className="max-h-80 overflow-y-auto space-y-1 custom-scrollbar">
                                 {categories.length > 0 ? (
@@ -476,7 +507,7 @@ export default function AddProductPage() {
                                 )}
                             </div>
                         </div>
-                        
+
                         {selectedCategories.length > 0 && (
                             <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                                 <p className="text-sm font-medium text-blue-900">

@@ -515,12 +515,15 @@ export default function UsersPage() {
                 label="Full Name *"
                 placeholder="Enter full name"
                 type="text"
+                blockDigits
                 {...registerForm('name', {
                   required: 'Name is required',
-                  minLength: { value: 2, message: 'Name must be at least 2 characters' }
+                  minLength: { value: 2, message: 'Name must be at least 2 characters' },
+                  validate: (v) => (!/\d/.test((v || '').trim()) || 'Name cannot contain numbers')
                 })}
                 error={formErrors.name?.message}
               />
+
               <p className="mt-1.5 text-xs text-slate-500">
                 Enter the users full name as it should appear in the system
               </p>
@@ -529,17 +532,17 @@ export default function UsersPage() {
             <div>
               <Input
                 label="Phone Number *"
-                type="tel"
                 placeholder="Enter phone number"
+                numericOnly
+                maxLength={10}
                 {...registerForm('phone', {
                   required: 'Phone is required',
-                  pattern: {
-                    value: /^[0-9]{10,}$/,
-                    message: 'Please enter a valid phone number (minimum 10 digits)'
-                  }
+                  validate: (v) =>
+                    /^\d{10}$/.test(v || '') || 'Enter a valid 10-digit phone number'
                 })}
                 error={formErrors.phone?.message}
               />
+
               <p className="mt-1.5 text-xs text-slate-500">
                 Phone number will be used for authentication and notifications
               </p>

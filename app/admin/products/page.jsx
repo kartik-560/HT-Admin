@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Image as ImageIcon, Grid3x3, List, Package, TrendingUp, AlertCircle } from 'lucide-react';
-import { DataTable } from '@/components/ui/data-table';
 import { useToast } from '@/components/ui/toast';
 import api from '@/lib/axios';
 import { useRouter } from 'next/navigation';
@@ -13,7 +12,6 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  const [viewMode, setViewMode] = useState('grid');
   const { toast } = useToast();
   const router = useRouter();
 
@@ -60,11 +58,14 @@ export default function ProductsPage() {
     }
   };
 
-  const handleStatusToggle = async (product) => {
+  const handleStatusToggle = async (product, event) => {
+    // Prevent event bubbling
+    event.stopPropagation();
+
     try {
       const newStatus = product.status === 'active' ? 'inactive' : 'active';
 
-      await api.put(`/products/${product.id}`, {
+      await api.patch(`/products/${product.id}/status`, {
         status: newStatus,
       }, {
         headers: {
@@ -165,13 +166,12 @@ export default function ProductsPage() {
       key: 'stockStatus',
       label: 'Stock Status',
       render: (status) => (
-        <span className={`px-2 py-1 rounded-full text-sm font-medium ${
-          status === 'In Stock'
+        <span className={`px-2 py-1 rounded-full text-sm font-medium ${status === 'In Stock'
             ? 'bg-green-100 text-green-800'
             : status === 'Low Stock'
-            ? 'bg-yellow-100 text-yellow-800'
-            : 'bg-red-100 text-red-800'
-        }`}>
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-red-100 text-red-800'
+          }`}>
           {status || 'Unknown'}
         </span>
       )
@@ -180,11 +180,10 @@ export default function ProductsPage() {
       key: 'status',
       label: 'Status',
       render: (status) => (
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-          status === 'active'
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${status === 'active'
             ? 'bg-blue-100 text-blue-800'
             : 'bg-gray-100 text-gray-800'
-        }`}>
+          }`}>
           {status === 'active' ? 'Active' : 'Inactive'}
         </span>
       )
@@ -231,7 +230,7 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -307,36 +306,33 @@ export default function ProductsPage() {
             <div className="flex bg-slate-100 rounded-lg p-1">
               <button
                 onClick={() => setActiveTab('all')}
-                className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 ${
-                  activeTab === 'all'
+                className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 ${activeTab === 'all'
                     ? 'bg-white text-blue-600 shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 All ({products.length})
               </button>
               <button
                 onClick={() => setActiveTab('active')}
-                className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 ${
-                  activeTab === 'active'
+                className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 ${activeTab === 'active'
                     ? 'bg-white text-green-600 shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 Active ({activeProducts})
               </button>
               <button
                 onClick={() => setActiveTab('inactive')}
-                className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 ${
-                  activeTab === 'inactive'
+                className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 ${activeTab === 'inactive'
                     ? 'bg-white text-amber-600 shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 Inactive ({inactiveProducts})
               </button>
             </div>
-          
+
           </div>
         </div>
 
@@ -354,7 +350,7 @@ export default function ProductsPage() {
               Add Product
             </button>
           </div>
-        ) :  (
+        ) : (
           /* Grid View */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => {
@@ -383,26 +379,28 @@ export default function ProductsPage() {
 
                     {/* Stock Status Badge */}
                     <div className="absolute top-3 right-3">
-                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm ${
-                        product.stockStatus === 'In Stock'
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm ${product.stockStatus === 'In Stock'
                           ? 'bg-green-500/90 text-white'
                           : product.stockStatus === 'Low Stock'
-                          ? 'bg-amber-500/90 text-white'
-                          : 'bg-red-500/90 text-white'
-                      }`}>
+                            ? 'bg-amber-500/90 text-white'
+                            : 'bg-red-500/90 text-white'
+                        }`}>
                         {product.stockStatus}
                       </span>
                     </div>
 
                     {/* Status Badge */}
                     <div className="absolute top-3 left-3">
-                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm ${
-                        product.status === 'active'
-                          ? 'bg-blue-500/90 text-white'
-                          : 'bg-slate-500/90 text-white'
-                      }`}>
+                      <button
+                        onClick={(e) => handleStatusToggle(product, e)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:shadow-xl ${product.status === 'active'
+                            ? 'bg-blue-500/90 text-white hover:bg-blue-600/90'
+                            : 'bg-slate-500/90 text-white hover:bg-slate-600/90'
+                          }`}
+                        title={`Click to mark as ${product.status === 'active' ? 'inactive' : 'active'}`}
+                      >
                         {product.status === 'active' ? 'Active' : 'Inactive'}
-                      </span>
+                      </button>
                     </div>
                   </div>
 
@@ -475,7 +473,7 @@ export default function ProductsPage() {
             })}
           </div>
         )}
-        
+
       </div>
     </div>
   );
