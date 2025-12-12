@@ -15,6 +15,7 @@ export default function AddProductPage() {
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [imageFiles, setImageFiles] = useState([]);
     const [expandedCategories, setExpandedCategories] = useState(new Set());
+    const [uploadMode, setUploadMode] = useState('bulk');
     const { toast } = useToast();
     const router = useRouter();
 
@@ -103,11 +104,32 @@ export default function AddProductPage() {
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files);
 
-        if (files.length > 5) {
-            toast.error('You can only upload maximum 5 images');
-            setImageFiles(files.slice(0, 5));
+        if (uploadMode === 'single') {
+            // Single mode: Add one file at a time
+            if (imageFiles.length >= 5) {
+                toast.error('Maximum 5 images allowed');
+                return;
+            }
+            if (files.length > 0) {
+                setImageFiles(prev => {
+                    const newFiles = [...prev, files[0]];
+                    if (newFiles.length > 5) {
+                        toast.error('Maximum 5 images allowed');
+                        return prev;
+                    }
+                    return newFiles;
+                });
+            }
+            // Reset the input to allow selecting the same file again
+            e.target.value = '';
         } else {
-            setImageFiles(files);
+            // Bulk mode: Replace all files at once
+            if (files.length > 5) {
+                toast.error('You can only upload maximum 5 images');
+                setImageFiles(files.slice(0, 5));
+            } else {
+                setImageFiles(files);
+            }
         }
     };
 
@@ -518,7 +540,7 @@ export default function AddProductPage() {
                     </div>
 
                     {/* Product Images */}
-                    <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-100">
+                    {/* <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-100">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
                             <div className="p-2 bg-pink-100 rounded-lg">
                                 <ImageIcon size={20} className="text-pink-600" />
@@ -597,7 +619,132 @@ export default function AddProductPage() {
                                 className="hidden"
                             />
                         </label>
+                    </div> */}
+
+                    {/* Product Images */}
+                    <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-100">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+                            <div className="p-2 bg-pink-100 rounded-lg">
+                                <ImageIcon size={20} className="text-pink-600" />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900">Product Images * (Max 5)</h2>
+                        </div>
+
+                        {/* Upload Mode Toggle */}
+                        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                            <p className="text-sm font-semibold text-gray-700 mb-3">Upload Mode</p>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadMode('single')}
+                                    className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-300 ${uploadMode === 'single'
+                                            ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-center gap-2">
+                                        <ImageIcon size={18} />
+                                        <span>One by One</span>
+                                    </div>
+                                    <p className="text-xs mt-1 opacity-80">Add images individually</p>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setUploadMode('bulk')}
+                                    className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-300 ${uploadMode === 'bulk'
+                                            ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Package size={18} />
+                                        <span>Bulk Upload</span>
+                                    </div>
+                                    <p className="text-xs mt-1 opacity-80">Select multiple at once</p>
+                                </button>
+                            </div>
+                        </div>
+
+                        {imageFiles.length > 0 && (
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-3">
+                                    <p className="text-sm font-semibold text-gray-700">
+                                        Selected Images ({imageFiles.length}/5)
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageFiles([])}
+                                        className="text-xs text-red-600 hover:text-red-700 font-medium"
+                                    >
+                                        Clear All
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    {Array.from(imageFiles).map((file, index) => (
+                                        <div
+                                            key={index}
+                                            className="relative group border-2 border-blue-300 rounded-xl overflow-hidden aspect-square bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm hover:shadow-md transition-all duration-300"
+                                        >
+                                            <Image
+                                                src={URL.createObjectURL(file)}
+                                                alt={`Preview ${index + 1}`}
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
+                                            />
+
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white text-xs transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                                                <p className="truncate font-medium">{file.name}</p>
+                                                <p className="text-gray-300">{(file.size / 1024).toFixed(1)} KB</p>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => removeNewImage(index)}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-lg transform scale-0 group-hover:scale-100 transition-transform duration-300 z-10"
+                                                title="Remove image"
+                                            >
+                                                <X size={14} />
+                                            </button>
+
+                                            <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                                #{index + 1}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <label className="border-3 border-dashed border-gray-300 rounded-xl p-10 text-center hover:border-blue-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 cursor-pointer block group">
+                            <div className="flex justify-center mb-4">
+                                <div className="p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full group-hover:scale-110 transition-transform duration-300">
+                                    <ImageIcon className="h-12 w-12 text-blue-600" />
+                                </div>
+                            </div>
+                            <p className="text-base font-semibold text-gray-900 mb-2">
+                                {uploadMode === 'single' ? 'Add an image' : 'Upload product images'}
+                            </p>
+                            <p className="text-sm text-gray-600 mb-1">PNG, JPG or WEBP</p>
+                            <p className="text-xs text-gray-500">
+                                {uploadMode === 'single'
+                                    ? `Click to add images one by one (${imageFiles.length}/5)`
+                                    : 'Maximum 5 images, up to 5MB each'
+                                }
+                            </p>
+                            <input
+                                type="file"
+                                multiple={uploadMode === 'bulk'}
+                                accept="image/*"
+                                onChange={handleImageChange}
+                                className="hidden"
+                            />
+                        </label>
                     </div>
+
 
                     {/* Action Buttons */}
                     <div className="sticky bottom-4 bg-white rounded-2xl shadow-xl p-6 border border-gray-200">

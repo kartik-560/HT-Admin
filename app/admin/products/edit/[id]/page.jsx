@@ -18,6 +18,7 @@ export default function EditProductPage({ params }) {
   const [imageFiles, setImageFiles] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
+  const [uploadMode, setUploadMode] = useState('bulk');
   const { toast } = useToast();
   const router = useRouter();
 
@@ -96,14 +97,37 @@ export default function EditProductPage({ params }) {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    const totalImages = existingImages.length + imageFiles.length + files.length;
-    
-    if (totalImages > 5) {
-      toast.error('Maximum 5 images allowed in total');
-      const allowedCount = 5 - existingImages.length - imageFiles.length;
-      setImageFiles([...imageFiles, ...files.slice(0, allowedCount)]);
+    const totalImages = existingImages.length + imageFiles.length;
+
+    if (uploadMode === 'single') {
+      // Single mode: Add one file at a time
+      if (totalImages >= 5) {
+        toast.error('Maximum 5 images allowed');
+        return;
+      }
+      if (files.length > 0) {
+        setImageFiles(prev => {
+          const newFiles = [...prev, files[0]];
+          const newTotal = existingImages.length + newFiles.length;
+          if (newTotal > 5) {
+            toast.error('Maximum 5 images allowed');
+            return prev;
+          }
+          return newFiles;
+        });
+      }
+      // Reset the input to allow selecting the same file again
+      e.target.value = '';
     } else {
-      setImageFiles([...imageFiles, ...files]);
+      // Bulk mode: Add multiple files at once
+      const allowedCount = 5 - totalImages;
+
+      if (totalImages + files.length > 5) {
+        toast.error(`Maximum 5 images allowed in total. You can add ${allowedCount} more.`);
+        setImageFiles([...imageFiles, ...files.slice(0, allowedCount)]);
+      } else {
+        setImageFiles([...imageFiles, ...files]);
+      }
     }
   };
 
@@ -205,9 +229,8 @@ export default function EditProductPage({ params }) {
             className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
           />
 
-          <span className={`text-sm flex-1 ${
-            level === 0 ? 'text-gray-900 font-semibold' : 'text-blue-600 font-medium'
-          }`}>
+          <span className={`text-sm flex-1 ${level === 0 ? 'text-gray-900 font-semibold' : 'text-blue-600 font-medium'
+            }`}>
             {level > 0 && <span className="text-gray-400 mr-2">{'└─'}</span>}
             {category.name}
           </span>
@@ -264,7 +287,7 @@ export default function EditProductPage({ params }) {
             <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             <span className="font-medium">Back to Products</span>
           </button>
-          
+
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 shadow-lg text-white">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -278,7 +301,7 @@ export default function EditProductPage({ params }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          
+
           {/* Basic Information */}
           <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-100">
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
@@ -287,7 +310,7 @@ export default function EditProductPage({ params }) {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Basic Information</h2>
             </div>
-            
+
             <div className="space-y-5">
               <Input
                 label="Product Name *"
@@ -323,7 +346,7 @@ export default function EditProductPage({ params }) {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Pricing & Stock</h2>
             </div>
-            
+
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Input
@@ -401,7 +424,7 @@ export default function EditProductPage({ params }) {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Product Specifications</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Input
                 label="Material"
@@ -445,7 +468,7 @@ export default function EditProductPage({ params }) {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Delivery & Services</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <Input
                 label="Delivery Info"
@@ -473,7 +496,7 @@ export default function EditProductPage({ params }) {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Care & Policies</h2>
             </div>
-            
+
             <div className="space-y-5">
               <Textarea
                 label="Care Instructions"
@@ -501,7 +524,7 @@ export default function EditProductPage({ params }) {
               </div>
               <h2 className="text-xl font-bold text-gray-900">Categories & Subcategories *</h2>
             </div>
-            
+
             <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-4 border border-gray-200">
               <div className="max-h-80 overflow-y-auto space-y-1 custom-scrollbar">
                 {categories.length > 0 ? (
@@ -516,7 +539,7 @@ export default function EditProductPage({ params }) {
                 )}
               </div>
             </div>
-            
+
             {selectedCategories.length > 0 && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm font-medium text-blue-900">
@@ -534,6 +557,41 @@ export default function EditProductPage({ params }) {
                   <ImageIcon size={20} className="text-pink-600" />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">Product Images * ({totalImages}/5)</h2>
+              </div>
+            </div>
+
+            {/* Upload Mode Toggle */}
+            <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-5 md:p-6 border border-blue-200">
+              <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">Upload Mode</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('single')}
+                  className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium transition-all duration-300 ${uploadMode === 'single'
+                      ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                    }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <ImageIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
+                    <span className="text-sm sm:text-base">One by One</span>
+                  </div>
+                  <p className="text-[10px] sm:text-xs mt-1 opacity-80">Add images individually</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode('bulk')}
+                  className={`flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium transition-all duration-300 ${uploadMode === 'bulk'
+                      ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                    }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Package size={16} className="sm:w-[18px] sm:h-[18px]" />
+                    <span className="text-sm sm:text-base">Bulk Upload</span>
+                  </div>
+                  <p className="text-[10px] sm:text-xs mt-1 opacity-80">Select multiple at once</p>
+                </button>
               </div>
             </div>
 
@@ -643,12 +701,19 @@ export default function EditProductPage({ params }) {
                     <ImageIcon className="h-12 w-12 text-blue-600" />
                   </div>
                 </div>
-                <p className="text-base font-semibold text-gray-900 mb-2">Add more images</p>
+                <p className="text-base font-semibold text-gray-900 mb-2">
+                  {uploadMode === 'single' ? 'Add an image' : 'Add more images'}
+                </p>
                 <p className="text-sm text-gray-600 mb-1">PNG, JPG or WEBP</p>
-                <p className="text-xs text-gray-500">{5 - totalImages} more image(s) can be added</p>
+                <p className="text-xs text-gray-500">
+                  {uploadMode === 'single'
+                    ? `Click to add images one by one (${5 - totalImages} more allowed)`
+                    : `${5 - totalImages} more image(s) can be added`
+                  }
+                </p>
                 <input
                   type="file"
-                  multiple
+                  multiple={uploadMode === 'bulk'}
                   accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
@@ -668,7 +733,6 @@ export default function EditProductPage({ params }) {
             )}
           </div>
 
-          {/* Action Buttons */}
           <div className="sticky bottom-4 bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
             <div className="flex gap-4">
               <button
