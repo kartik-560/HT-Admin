@@ -56,7 +56,7 @@ export default function ProductDetailPage() {
 
   const getCategoryNames = (categoryIds) => {
     if (!categoryIds || categoryIds.length === 0) return [];
-    
+
     const names = [];
     const searchCategory = (cats) => {
       for (let cat of cats) {
@@ -150,11 +150,10 @@ export default function ProductDetailPage() {
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === index
-                        ? 'border-blue-600'
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
+                    className={`rounded-lg overflow-hidden border-2 transition-colors ${selectedImage === index
+                      ? 'border-blue-600'
+                      : 'border-gray-300 hover:border-gray-400'
+                      }`}
                   >
                     <img
                       src={image}
@@ -225,18 +224,34 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Stock Status */}
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-3 h-3 rounded-full ${
-                  product.stockStatus === 'In Stock'
-                    ? 'bg-green-500'
-                    : product.stockStatus === 'Low Stock'
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500'
-                }`}
-              />
-              <span className="font-medium text-gray-700">{product.stockStatus || 'Unknown'}</span>
+            <div className="flex items-center gap-6">
+              {/* Stock Status */}
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${product.stockStatus === 'In Stock'
+                      ? 'bg-green-500'
+                      : product.stockStatus === 'Low Stock'
+                        ? 'bg-yellow-500'
+                        : 'bg-red-500'
+                    }`}
+                />
+                <span className="font-medium text-gray-700">
+                  {product.stockStatus || 'Unknown'}
+                </span>
+              </div>
+
+              {/* Product Modifiable */}
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${product.isModifiable ? 'bg-blue-500' : 'bg-gray-400'
+                    }`}
+                />
+                <span className="font-medium text-gray-700">
+                  {product.isModifiable ? 'Modifiable' : 'Not Modifiable'}
+                </span>
+              </div>
             </div>
+
 
             {/* Additional Info */}
             <div className="grid grid-cols-2 gap-4 pt-4 border-t">
@@ -353,6 +368,6 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 }

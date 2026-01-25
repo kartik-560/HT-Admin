@@ -16,6 +16,9 @@ export default function AddProductPage() {
     const [imageFiles, setImageFiles] = useState([]);
     const [expandedCategories, setExpandedCategories] = useState(new Set());
     const [uploadMode, setUploadMode] = useState('bulk');
+    const [showCustomInput, setShowCustomInput] = useState(false);
+    const [showCustomInstallation, setShowCustomInstallation] = useState(false);
+    const [selectedCareInstructions, setSelectedCareInstructions] = useState([]);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -28,11 +31,11 @@ export default function AddProductPage() {
     } = useForm({
         defaultValues: {
             name: '',
-            brand: '',
+            brand: 'Wood Villa Furniture Factory',
             originalPrice: '',
             discountPercentage: '',
             discountedPrice: '',
-            stockStatus: '',
+            stockStatus: 'In Stock',
             status: 'active',
             note: '',
             material: '',
@@ -40,11 +43,22 @@ export default function AddProductPage() {
             seaterCount: '',
             warrantyPeriod: '',
             delivery: '',
-            installation: '',
+            installation: 'Free installation included',
             productCareInstructions: '',
             returnAndCancellationPolicy: '',
             priceIncludesTax: false,
+            priceExcludesTax: false,
             shippingIncluded: false,
+            shippingChargesApply: false,
+            installationIncluded: false,
+            installationChargesApply: false,
+            assemblyRequired: false,
+            noAssemblyRequired: false,
+            warrantyIncluded: false,
+            warrantyNotIncluded: false,
+            cashOnDelivery: false,
+            noCashOnDelivery: false,
+            isModifiable: false,
         }
     });
 
@@ -153,7 +167,7 @@ export default function AddProductPage() {
             const formData = new FormData();
 
             formData.append('name', data.name);
-            formData.append('brand', data.brand || '');
+            formData.append('brand', showCustomInput ? data.customBrand : data.brand);
             formData.append('originalPrice', parseFloat(data.originalPrice) || 0);
             formData.append('discountedPrice', parseFloat(data.discountedPrice) || 0);
             formData.append('discountPercentage', parseFloat(data.discountPercentage) || 0);
@@ -168,8 +182,19 @@ export default function AddProductPage() {
             formData.append('productCareInstructions', data.productCareInstructions || '');
             formData.append('returnAndCancellationPolicy', data.returnAndCancellationPolicy || '');
             formData.append('priceIncludesTax', data.priceIncludesTax || false);
+            formData.append('priceExcludesTax', data.priceExcludesTax || false);
             formData.append('shippingIncluded', data.shippingIncluded || false);
+            formData.append('shippingChargesApply', data.shippingChargesApply || false);
+            formData.append('installationIncluded', data.installationIncluded || false);
+            formData.append('installationChargesApply', data.installationChargesApply || false);
+            formData.append('assemblyRequired', data.assemblyRequired || false);
+            formData.append('noAssemblyRequired', data.noAssemblyRequired || false);
+            formData.append('warrantyIncluded', data.warrantyIncluded || false);
+            formData.append('warrantyNotIncluded', data.warrantyNotIncluded || false);
+            formData.append('cashOnDelivery', data.cashOnDelivery || false);
+            formData.append('noCashOnDelivery', data.noCashOnDelivery || false);
             formData.append('status', data.status || 'active');
+            formData.append('isModifiable', data.isModifiable);
 
             selectedCategories.forEach((categoryId) => {
                 formData.append('categoryIds', categoryId);
@@ -243,6 +268,17 @@ export default function AddProductPage() {
         );
     };
 
+    const handleCareInstructionChange = (instruction) => {
+        const updatedInstructions = selectedCareInstructions.includes(instruction)
+            ? selectedCareInstructions.filter(item => item !== instruction)
+            : [...selectedCareInstructions, instruction];
+
+        setSelectedCareInstructions(updatedInstructions);
+
+        // Convert array to comma-separated string and update form value
+        setValue('productCareInstructions', updatedInstructions.join(', '));
+    };
+
     const stockOptions = [
         { value: 'In Stock', label: 'In Stock' },
         { value: 'Low Stock', label: 'Low Stock' },
@@ -252,6 +288,40 @@ export default function AddProductPage() {
     const statusOptions = [
         { value: 'active', label: 'Active' },
         { value: 'inactive', label: 'Inactive' }
+    ];
+
+    const brandOptions = [
+        { value: 'Wood Villa Furniture Factory', label: 'Wood Villa Furniture Factory' },
+        { value: 'custom', label: 'Add custom Brand' }
+    ];
+    const installationOptions = [
+        { value: 'Free installation included', label: 'Free installation included' },
+        { value: 'Paid installation available', label: 'Paid installation available' },
+        { value: 'Installation not available', label: 'Installation not available' }
+    ];
+
+    const warrantyOptions = [
+        { value: '', label: 'Select warranty period' },
+        { value: '1 year', label: '1 year' },
+        { value: '2 years', label: '2 years' },
+        { value: '3 years', label: '3 years' },
+        { value: '4 years', label: '4 years' },
+        { value: '5 years', label: '5 years' },
+        { value: '6 years', label: '6 years' },
+        { value: '7 years', label: '7 years' },
+        { value: '8 years', label: '8 years' },
+        { value: '9 years', label: '9 years' },
+        { value: '10 years', label: '10 years' }
+    ];
+
+    const careInstructionsList = [
+        'Wipe with a clean and dry cloth regularly',
+        'Avoid direct sunlight and heat exposure',
+        'Avoid harsh chemicals and abrasive cleaners',
+        'Use furniture protectors under heavy objects',
+        'Avoid dragging furniture across floors',
+        'Clean with manufacturer-recommended products only',
+        'Professional cleaning recommended annually'
     ];
 
     return (
@@ -299,13 +369,30 @@ export default function AddProductPage() {
                                 error={errors.name?.message}
                             />
 
-                            <Input
-                                label="Brand"
-                                placeholder="Enter brand name"
-                                type="text"
-                                {...register('brand')}
-                                error={errors.brand?.message}
-                            />
+                            {/* Brand Dropdown */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <Select
+                                    label="Brand *"
+                                    options={brandOptions}
+                                    {...register('brand', { required: 'Brand is required' })}
+                                    onChange={(e) => {
+                                        setShowCustomInput(e.target.value === 'custom');
+                                    }}
+                                    error={errors.brand?.message}
+                                />
+
+                                {showCustomInput && (
+                                    <Input
+                                        label="Custom Brand Name *"
+                                        placeholder="Enter custom brand name"
+                                        type="text"
+                                        {...register('customBrand', {
+                                            required: showCustomInput ? 'Custom brand name is required' : false
+                                        })}
+                                        error={errors.customBrand?.message}
+                                    />
+                                )}
+                            </div>
 
                             <Textarea
                                 label="Description/Note"
@@ -384,7 +471,7 @@ export default function AddProductPage() {
                                 />
                             </div>
 
-                            <div className="bg-blue-50 rounded-lg p-4 space-y-3 border border-blue-100">
+                            {/* <div className="bg-blue-50 rounded-lg p-4 space-y-3 border border-blue-100">
                                 <label className="flex items-center gap-3 cursor-pointer group">
                                     <input
                                         type="checkbox"
@@ -402,7 +489,142 @@ export default function AddProductPage() {
                                     />
                                     <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">Shipping included in price</span>
                                 </label>
+                            </div> */}
+
+                            <div className="bg-blue-50 rounded-lg p-4 space-y-3 border border-blue-100">
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('priceIncludesTax')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Price includes tax
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('priceExcludesTax')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Price excludes tax
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('shippingIncluded')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Shipping included in price
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('shippingChargesApply')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Shipping charges apply
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('installationIncluded')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Installation included in price
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('installationChargesApply')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Installation charges apply
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('assemblyRequired')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Assembly required
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('noAssemblyRequired')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        No assembly required
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('warrantyIncluded')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Warranty included
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('warrantyNotIncluded')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Warranty not included
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('cashOnDelivery')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Cash on delivery available
+                                    </span>
+                                </label>
+
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        {...register('noCashOnDelivery')}
+                                        className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        Cash on delivery not available
+                                    </span>
+                                </label>
                             </div>
+
                         </div>
                     </div>
 
@@ -440,14 +662,50 @@ export default function AddProductPage() {
                                 error={errors.seaterCount?.message}
                             />
 
-                            <Input
+                            <Select
                                 label="Warranty Period"
-                                placeholder="e.g., 1 year, 2 years"
-                                type="text"
+                                options={warrantyOptions}
                                 {...register('warrantyPeriod')}
                                 error={errors.warrantyPeriod?.message}
                             />
                         </div>
+                    </div>
+
+                    {/* Product Modifiable */}
+                    <div className="mt-6">+
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Product Modifiable?
+                        </label>
+
+                        <div className="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200 shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => setValue('isModifiable', true)}
+                                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200
+        ${watch('isModifiable')
+                                        ? 'bg-green-600 text-white shadow'
+                                        : 'text-gray-600 hover:bg-white'
+                                    }`}
+                            >
+                                Yes
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setValue('isModifiable', false)}
+                                className={`px-6 py-2 rounded-lg text-sm font-medium transition-all duration-200
+        ${!watch('isModifiable')
+                                        ? 'bg-red-600 text-white shadow'
+                                        : 'text-gray-600 hover:bg-white'
+                                    }`}
+                            >
+                                No
+                            </button>
+                        </div>
+
+                        <p className="mt-2 text-xs text-gray-500">
+                            Choose whether this product can be modified after creation
+                        </p>
                     </div>
 
                     {/* Delivery & Services */}
@@ -468,13 +726,14 @@ export default function AddProductPage() {
                                 error={errors.delivery?.message}
                             />
 
-                            <Input
-                                label="Installation Info"
-                                placeholder="e.g., Free installation included"
-                                type="text"
-                                {...register('installation')}
-                                error={errors.installation?.message}
-                            />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <Select
+                                    label="Installation Info"
+                                    options={installationOptions}
+                                    {...register('installation')}
+                                    error={errors.installation?.message}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -488,13 +747,29 @@ export default function AddProductPage() {
                         </div>
 
                         <div className="space-y-5">
-                            <Textarea
-                                label="Care Instructions"
-                                placeholder="Enter product care and maintenance instructions"
-                                rows={3}
-                                {...register('productCareInstructions')}
-                                error={errors.productCareInstructions?.message}
-                            />
+                            <div className="space-y-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Care Instructions
+                                </label>
+                                <div className="bg-blue-50 rounded-lg p-4 space-y-3 border border-blue-100">
+                                    {careInstructionsList.map((instruction, index) => (
+                                        <label key={index} className="flex items-start gap-3 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedCareInstructions.includes(instruction)}
+                                                onChange={() => handleCareInstructionChange(instruction)}
+                                                className="w-5 h-5 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                                {instruction}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                                {errors.productCareInstructions?.message && (
+                                    <span className="text-sm text-red-600">{errors.productCareInstructions.message}</span>
+                                )}
+                            </div>
 
                             <Textarea
                                 label="Return & Cancellation Policy"
@@ -540,88 +815,6 @@ export default function AddProductPage() {
                     </div>
 
                     {/* Product Images */}
-                    {/* <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-100">
-                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                            <div className="p-2 bg-pink-100 rounded-lg">
-                                <ImageIcon size={20} className="text-pink-600" />
-                            </div>
-                            <h2 className="text-xl font-bold text-gray-900">Product Images * (Max 5)</h2>
-                        </div>
-
-                        {imageFiles.length > 0 && (
-                            <div className="mb-6">
-                                <div className="flex items-center justify-between mb-3">
-                                    <p className="text-sm font-semibold text-gray-700">
-                                        Selected Images ({imageFiles.length}/5)
-                                    </p>
-                                    <button
-                                        type="button"
-                                        onClick={() => setImageFiles([])}
-                                        className="text-xs text-red-600 hover:text-red-700 font-medium"
-                                    >
-                                        Clear All
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                    {Array.from(imageFiles).map((file, index) => (
-                                        <div
-                                            key={index}
-                                            className="relative group border-2 border-blue-300 rounded-xl overflow-hidden aspect-square bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm hover:shadow-md transition-all duration-300"
-                                        >
-                                            <Image
-                                                src={URL.createObjectURL(file)}
-                                                alt={`Preview ${index + 1}`}
-                                                fill
-                                                className="object-cover"
-                                                unoptimized
-                                            />
-
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white text-xs transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                                                <p className="truncate font-medium">{file.name}</p>
-                                                <p className="text-gray-300">{(file.size / 1024).toFixed(1)} KB</p>
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => removeNewImage(index)}
-                                                className="absolute -top-2 -right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow-lg transform scale-0 group-hover:scale-100 transition-transform duration-300 z-10"
-                                                title="Remove image"
-                                            >
-                                                <X size={14} />
-                                            </button>
-
-                                            <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                                #{index + 1}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <label className="border-3 border-dashed border-gray-300 rounded-xl p-10 text-center hover:border-blue-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 cursor-pointer block group">
-                            <div className="flex justify-center mb-4">
-                                <div className="p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full group-hover:scale-110 transition-transform duration-300">
-                                    <ImageIcon className="h-12 w-12 text-blue-600" />
-                                </div>
-                            </div>
-                            <p className="text-base font-semibold text-gray-900 mb-2">Upload product images</p>
-                            <p className="text-sm text-gray-600 mb-1">PNG, JPG or WEBP</p>
-                            <p className="text-xs text-gray-500">Maximum 5 images, up to 5MB each</p>
-                            <input
-                                type="file"
-                                multiple
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="hidden"
-                            />
-                        </label>
-                    </div> */}
-
-                    {/* Product Images */}
                     <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-100">
                         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
                             <div className="p-2 bg-pink-100 rounded-lg">
@@ -638,8 +831,8 @@ export default function AddProductPage() {
                                     type="button"
                                     onClick={() => setUploadMode('single')}
                                     className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-300 ${uploadMode === 'single'
-                                            ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
                                         }`}
                                 >
                                     <div className="flex items-center justify-center gap-2">
@@ -652,8 +845,8 @@ export default function AddProductPage() {
                                     type="button"
                                     onClick={() => setUploadMode('bulk')}
                                     className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-300 ${uploadMode === 'bulk'
-                                            ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                        ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
                                         }`}
                                 >
                                     <div className="flex items-center justify-center gap-2">
